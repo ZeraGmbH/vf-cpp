@@ -9,6 +9,8 @@ using namespace VfCpp;
 cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem, QObject *p_object, QString p_funcName, QMap<QString,QString> p_parameter,bool p_threaded)
     : m_object(p_object), m_function(p_funcName), m_parameter(p_parameter), m_nEntityId(entityId), m_pEventSystem(eventsystem),m_threaded(p_threaded)
 {
+    // create rpcname with all parameters
+    // We do this because we want to see needed parameters inside the debugger.
     m_rpcName=m_function;
     m_rpcName.append("(");
     for(QString param : m_parameter.keys()){
@@ -22,6 +24,7 @@ cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem
     }
     m_rpcName.append(")");
 
+    // register rpc
     VeinComponent::RemoteProcedureData *rpcData = new VeinComponent::RemoteProcedureData();
     rpcData->setEntityId(m_nEntityId);
     rpcData->setCommand(VeinComponent::RemoteProcedureData::Command::RPCMD_REGISTER);
@@ -31,8 +34,9 @@ cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem
 
     QObject::connect(this,&cVeinModuleRpc::callFunctionPrivateSignal,this,&cVeinModuleRpc::callFunctionPrivate,Qt::QueuedConnection);
 
-
-    emit  m_pEventSystem->sigSendEvent(new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, rpcData));
+    if(!m_pEventSystem.isNull()){
+        emit  m_pEventSystem->sigSendEvent(new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, rpcData));
+    }
 }
 cVeinModuleRpc::~cVeinModuleRpc(){
 
@@ -43,13 +47,15 @@ QString cVeinModuleRpc::rpcName() const
     return m_rpcName;
 };
 
-void cVeinModuleRpc::callFunction(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
+void cVeinModuleRpc::callFunction(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &p_rpcParameters)
 {
-    emit callFunctionPrivateSignal(p_callId,p_peerId,t_rpcParameters);
+    // here is a signal called instead of callFunctionPrivat, because we do not want to block the eventloop for to long.
+    emit callFunctionPrivateSignal(p_callId,p_peerId,p_rpcParameters);
 };
 
-void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
+void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &p_rpcParameters)
 {
+    Q_UNUSED(p_callId);
     const auto rpcHandling = [=]() {
         QMutexLocker locker(&(this->m_mutex));
         QVariantMap returnVal;
@@ -58,7 +64,7 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_p
         // check parameters
         QStringList requiredParamList = m_parameter.keys();
         QSet<QString> requiredParamKeys(requiredParamList.begin(), requiredParamList.end());
-        const QVariantMap searchParameters = t_rpcParameters.value(VeinComponent::RemoteProcedureData::s_parameterString).toMap();
+        const QVariantMap searchParameters = p_rpcParameters.value(VeinComponent::RemoteProcedureData::s_parameterString).toMap();
         QStringList searchParamList = searchParameters.keys();
         requiredParamKeys.subtract(QSet<QString>(searchParamList.begin(), searchParamList.end()));
 
@@ -83,12 +89,12 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_p
 
         }else{
             // write error msg on error
-            returnVal=t_rpcParameters;
+            returnVal=p_rpcParameters;
             returnVal.insert(VeinComponent::RemoteProcedureData::s_resultCodeString, RPCResultCodes::RPC_EINVAL);
             returnVal.insert(VeinComponent::RemoteProcedureData::s_errorMessageString, QString("Missing required parameters: [%1]").arg(requiredParamList.join(',')));
         }
         // send answer
-        returnVal.insert(VeinComponent::RemoteProcedureData::s_callIdString,t_rpcParameters[VeinComponent::RemoteProcedureData::s_callIdString]);
+        returnVal.insert(VeinComponent::RemoteProcedureData::s_callIdString,p_rpcParameters[VeinComponent::RemoteProcedureData::s_callIdString]);
         VeinComponent::RemoteProcedureData *resultData = new VeinComponent::RemoteProcedureData();
         resultData->setEntityId(m_nEntityId);
         resultData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
@@ -100,9 +106,12 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_p
 
         VeinEvent::CommandEvent *rpcResultEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, resultData);
         rpcResultEvent->setPeerId(p_peerId);
-        emit m_pEventSystem->sigSendEvent(rpcResultEvent);
+        if(!m_pEventSystem.isNull()){
+            emit m_pEventSystem->sigSendEvent(rpcResultEvent);
+        }
     };
 
+    // start in thread or call directly (default is in thread)
     if(m_threaded){
         QtConcurrent::run(rpcHandling);
     }else{

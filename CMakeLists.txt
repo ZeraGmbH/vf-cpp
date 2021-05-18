@@ -24,7 +24,7 @@ include(FeatureSummary)
 include(GNUInstallDirs)
 
 #Find dependecies
-find_package(Qt5 COMPONENTS Core CONFIG REQUIRED)
+find_package(Qt5 COMPONENTS Core Gui CONFIG REQUIRED)
 find_package(VfComponent REQUIRED)
 find_package(VfHelpers REQUIRED)
 find_package(VfEvent REQUIRED)
@@ -32,11 +32,11 @@ find_package(VfEvent REQUIRED)
 
 #sum up project Files 
 file(GLOB SOURCES 
-    ${PROJECT_SOURCE_DIR}/*.cpp
+    ${PROJECT_SOURCE_DIR}/src/*.cpp
     )
 
 file(GLOB HEADER
-    ${PROJECT_SOURCE_DIR}/*.h
+    ${PROJECT_SOURCE_DIR}/src/*.h
     )
 
 file(GLOB RESOURCES 
@@ -56,6 +56,8 @@ add_library(VfCpp SHARED
 
 #link dependencies
 target_link_libraries(VfCpp 
+    PUBLIC
+    Qt5::Gui
     PRIVATE
     Qt5::Core
     VeinMeta::VfHelpers
