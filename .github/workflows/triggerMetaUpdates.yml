@@ -19,4 +19,5 @@ jobs:
           github_token: ${{ secrets.G_TRIGGER_WORKFLOW }}
           workflow_file_name: updateSubmodule.yml
           inputs: '{"submodule" : "${{ env.MODULENAME }}"}'  
+          ref: master
 
