@@ -1,7 +1,7 @@
 on:
   push:
     branches:
-      - ci_test
+      - master
   workflow_dispatch:
 
 jobs:
@@ -22,5 +22,5 @@ jobs:
           github_token: ${{ secrets.G_TRIGGER_WORKFLOW }}
           workflow_file_name: updateSubmodule.yml
           inputs: '{"submodule" : "${{ env.MODULENAME }}"}'  
-          ref: ci_testing
+          ref: master
 
