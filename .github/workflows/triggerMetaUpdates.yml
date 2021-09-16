@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  triggerUpdate:
     runs-on: ubuntu-latest
     env: 
       MODULENAME: ${{ github.repository }}
