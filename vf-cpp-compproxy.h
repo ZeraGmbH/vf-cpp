@@ -1,14 +1,9 @@
 #ifndef VEINCOMPPROXY_H
 #define VEINCOMPPROXY_H
 
-
-
-#include "veinmodulecomponent.h"
-
+#include "vf-cpp-component.h"
 
 namespace VfCpp {
-
-
 /**
  *  VfCompProxy
  *

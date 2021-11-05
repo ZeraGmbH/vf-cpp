@@ -4,8 +4,8 @@
 #include <QList>
 #include <QMap>
 #include <ve_eventsystem.h>
-#include <veinmodulecomponent.h>
-#include <veinmodulerpc.h>
+#include <vf-cpp-component.h>
+#include <vf-cpp-rpc.h>
 
 namespace VfCpp {
 
