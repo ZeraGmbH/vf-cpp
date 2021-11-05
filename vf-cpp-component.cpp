@@ -7,7 +7,7 @@
 #include <ve_commandevent.h>
 #include <ve_eventsystem.h>
 
-#include "veinmodulecomponent.h"
+#include "vf-cpp-component.h"
 using namespace VfCpp;
 
 
@@ -74,8 +74,8 @@ void cVeinModuleComponent::setError()
 
 void cVeinModuleComponent::setValueByEvent(QVariant value)
 {
-    if(value != getValue()){
-        if(!m_readOnly){
+    if(value != getValue()) {
+        if(!m_readOnly) {
             setValue(value);
         }
         emit sigValueChanged(value);

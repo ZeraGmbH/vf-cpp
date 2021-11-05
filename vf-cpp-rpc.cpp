@@ -1,10 +1,8 @@
-#include "veinmodulerpc.h"
+#include "vf-cpp-rpc.h"
 
 #include <QtConcurrent/QtConcurrent>
 
 using namespace VfCpp;
-
-
 
 cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem, QObject *p_object, QString p_funcName, QMap<QString,QString> p_parameter,bool p_threaded)
     : m_object(p_object), m_function(p_funcName), m_parameter(p_parameter), m_nEntityId(entityId), m_pEventSystem(eventsystem),m_threaded(p_threaded)
@@ -34,6 +32,7 @@ cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem
 
     emit  m_pEventSystem->sigSendEvent(new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, rpcData));
 }
+
 cVeinModuleRpc::~cVeinModuleRpc(){
 
 };
