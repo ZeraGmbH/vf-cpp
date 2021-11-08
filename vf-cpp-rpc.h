@@ -55,6 +55,7 @@ public:
     QString rpcName() const;
 
     void callFunction(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters);
+    void sendRpcResult(const QUuid &p_callId, RPCResultCodes resultCode, QString errorMsg, QVariant returnedResult);
 
 private slots:
     void callFunctionPrivate(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters);
@@ -62,8 +63,6 @@ signals:
     void callFunctionPrivateSignal(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters);
 
 private:
-    void sendRpcResult(const QUuid &p_callId, RPCResultCodes resultCode, QString errorMsg, QVariant returnedResult);
-
     QObject *m_object;
     QString m_function;
     QMap<QString,QString> m_parameter;
