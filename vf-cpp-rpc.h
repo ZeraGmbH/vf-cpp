@@ -20,7 +20,6 @@
 #include <ve_commandevent.h>
 #include <vcmp_errordata.h>
 
-
 namespace VeinEvent
 {
 class EventSystem;
@@ -55,8 +54,7 @@ public:
 
     QString rpcName() const;
 
-    void callFunction(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &t_rpcParameters);
-
+    void callFunction(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters);
 
 private slots:
     void callFunctionPrivate(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters);
@@ -85,6 +83,5 @@ private:
 };
 
 }
-
 
 #endif // VEINMODULERPC_H
