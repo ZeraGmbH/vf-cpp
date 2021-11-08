@@ -19,6 +19,9 @@ cVeinModuleRpc::cVeinModuleRpc(int entityId,
     m_threaded(p_threaded),
     m_functionBlocks(pFunctionBlocks)
 {
+    if(p_threaded && !pFunctionBlocks) {
+        qFatal("Do not use unblocking functions with threading - signal won't reach their slots!!");
+    }
     m_rpcName=m_function;
     m_rpcName.append("(");
     for(QString param : m_parameter.keys()){
