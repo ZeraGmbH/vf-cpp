@@ -41,23 +41,22 @@ cVeinModuleRpc::cVeinModuleRpc(int entityId,
 
     QObject::connect(this,&cVeinModuleRpc::callFunctionPrivateSignal,this,&cVeinModuleRpc::callFunctionPrivate,Qt::QueuedConnection);
 
-
     emit  m_pEventSystem->sigSendEvent(new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, rpcData));
 }
 
-cVeinModuleRpc::~cVeinModuleRpc(){
-
-};
+cVeinModuleRpc::~cVeinModuleRpc()
+{
+}
 
 QString cVeinModuleRpc::rpcName() const
 {
     return m_rpcName;
-};
+}
 
 void cVeinModuleRpc::callFunction(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
 {
     emit callFunctionPrivateSignal(p_callId, p_peerId, t_rpcParameters);
-};
+}
 
 void cVeinModuleRpc::callFunctionPrivate(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters)
 {

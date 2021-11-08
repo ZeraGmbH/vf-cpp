@@ -76,14 +76,11 @@ bool veinmoduleentity::unWatchComponent(int p_EntityId, const QString &p_compone
     return retVal;
 }
 
-   //@TODO check if notification is reachable
-   //@TODO implement and handle active objects
 bool veinmoduleentity::processCommandEvent(VeinEvent::CommandEvent *p_cEvent)
 {
-     bool retVal = false;
-     // handle components
-    if (p_cEvent->eventData()->type() == VeinComponent::ComponentData::dataType())
-    {
+    bool retVal = false;
+    // handle components
+    if (p_cEvent->eventData()->type() == VeinComponent::ComponentData::dataType()) {
         QString cName;
         int entityId;
         VeinComponent::ComponentData* cData = static_cast<VeinComponent::ComponentData*> (p_cEvent->eventData());
@@ -107,8 +104,9 @@ bool veinmoduleentity::processCommandEvent(VeinEvent::CommandEvent *p_cEvent)
                 }
             }
         }
+    }
     // handle rpcs
-    } else if(p_cEvent->eventData()->type() == VeinComponent::RemoteProcedureData::dataType()) {
+    else if(p_cEvent->eventData()->type() == VeinComponent::RemoteProcedureData::dataType()) {
         VeinComponent::RemoteProcedureData *rpcData=nullptr;
         rpcData = static_cast<VeinComponent::RemoteProcedureData *>(p_cEvent->eventData());
         if(rpcData->command() == VeinComponent::RemoteProcedureData::Command::RPCMD_CALL) {
