@@ -42,12 +42,12 @@ QString cVeinModuleRpc::rpcName() const
     return m_rpcName;
 };
 
-void cVeinModuleRpc::callFunction(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
+void cVeinModuleRpc::callFunction(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
 {
-    emit callFunctionPrivateSignal(p_callId,p_peerId,t_rpcParameters);
+    emit callFunctionPrivateSignal(p_callId, p_peerId, t_rpcParameters);
 };
 
-void cVeinModuleRpc::callFunctionPrivate(const QUuid &p_callId, const QUuid &p_peerId, const QVariantMap &t_rpcParameters)
+void cVeinModuleRpc::callFunctionPrivate(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters)
 {
     const auto rpcHandling = [=]() {
         QMutexLocker locker(&(this->m_mutex));

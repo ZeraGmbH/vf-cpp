@@ -54,9 +54,9 @@ public:
 
 
 private slots:
-    void callFunctionPrivate(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &t_rpcParameters);
+    void callFunctionPrivate(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters);
 signals:
-    void callFunctionPrivateSignal(const QUuid &p_callId,const QUuid &p_peerId, const QVariantMap &t_rpcParameters);
+    void callFunctionPrivateSignal(const QUuid p_callId, const QUuid p_peerId, const QVariantMap t_rpcParameters);
 
 private:
     QObject *m_object;
