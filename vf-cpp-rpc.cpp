@@ -4,8 +4,20 @@
 
 using namespace VfCpp;
 
-cVeinModuleRpc::cVeinModuleRpc(int entityId, VeinEvent::EventSystem *eventsystem, QObject *p_object, QString p_funcName, QMap<QString,QString> p_parameter,bool p_threaded)
-    : m_object(p_object), m_function(p_funcName), m_parameter(p_parameter), m_nEntityId(entityId), m_pEventSystem(eventsystem),m_threaded(p_threaded)
+cVeinModuleRpc::cVeinModuleRpc(int entityId,
+                               VeinEvent::EventSystem *eventsystem,
+                               QObject *p_object,
+                               QString p_funcName,
+                               QMap<QString,QString> p_parameter,
+                               bool p_threaded,
+                               bool pFunctionBlocks) :
+    m_object(p_object),
+    m_function(p_funcName),
+    m_parameter(p_parameter),
+    m_nEntityId(entityId),
+    m_pEventSystem(eventsystem),
+    m_threaded(p_threaded),
+    m_functionBlocks(pFunctionBlocks)
 {
     m_rpcName=m_function;
     m_rpcName.append("(");
@@ -51,8 +63,6 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid p_callId, const QUuid p_pee
 {
     const auto rpcHandling = [=]() {
         QMutexLocker locker(&(this->m_mutex));
-        QVariantMap returnVal;
-        QVariant fcnRetVal;
 
         // check parameters
         QStringList requiredParamList = m_parameter.keys();
@@ -61,33 +71,59 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid p_callId, const QUuid p_pee
         QStringList searchParamList = searchParameters.keys();
         requiredParamKeys.subtract(QSet<QString>(searchParamList.begin(), searchParamList.end()));
 
-
-        if(requiredParamKeys.isEmpty())
-        {
-            //call actual function
-            bool suc=QMetaObject::invokeMethod(m_object,m_function.toUtf8(),Qt::DirectConnection,
-                                               Q_RETURN_ARG(QVariant, fcnRetVal),
-                                               Q_ARG(QVariantMap,searchParameters)
-                                               );
-
-            // write return value to RemoteProcedureData::Return on success
-            if(suc){
-                returnVal.insert(VeinComponent::RemoteProcedureData::s_resultCodeString, RPCResultCodes::RPC_SUCCESS);
-                returnVal.insert("RemoteProcedureData::Return",fcnRetVal);
-            }else{
-                returnVal.insert(VeinComponent::RemoteProcedureData::s_resultCodeString, RPCResultCodes::RPC_EINVAL);
-                returnVal.insert(VeinComponent::RemoteProcedureData::s_errorMessageString, QString("Function not implemented"));
+        bool callOk = false;
+        RPCResultCodes resultCode = RPCResultCodes::RPC_EINVAL;
+        QString errorMsg;
+        QVariant returnedResult;
+        if(requiredParamKeys.isEmpty()) {
+            // call actual function
+            QVariantMap rpcParameters = searchParameters;
+            rpcParameters.insert(VeinComponent::RemoteProcedureData::s_callIdString, p_callId);
+            callOk = QMetaObject::invokeMethod(m_object,m_function.toUtf8(),Qt::DirectConnection,
+                                                 Q_RETURN_ARG(QVariant, returnedResult),
+                                                 Q_ARG(QVariantMap,rpcParameters)
+                                                 );
+            if(callOk) {
+                resultCode = RPCResultCodes::RPC_SUCCESS;
+            } else {
+                resultCode = RPCResultCodes::RPC_EINVAL;
+                errorMsg = QStringLiteral("Function not implemented");
             }
-
-
-        }else{
-            // write error msg on error
-            returnVal=t_rpcParameters;
-            returnVal.insert(VeinComponent::RemoteProcedureData::s_resultCodeString, RPCResultCodes::RPC_EINVAL);
-            returnVal.insert(VeinComponent::RemoteProcedureData::s_errorMessageString, QString("Missing required parameters: [%1]").arg(requiredParamList.join(',')));
         }
-        // send answer
-        returnVal.insert(VeinComponent::RemoteProcedureData::s_callIdString,t_rpcParameters[VeinComponent::RemoteProcedureData::s_callIdString]);
+        else {
+            // write error msg on error
+            returnedResult = t_rpcParameters;
+            resultCode = RPCResultCodes::RPC_EINVAL;
+            errorMsg = QString("Missing required parameters: [%1]").arg(requiredParamList.join(','));
+        }
+        m_pendingRpcHash[p_callId] = p_peerId;
+        if(!callOk || m_functionBlocks) {
+            // send answer now
+            sendRpcResult(p_callId, resultCode, errorMsg, returnedResult);
+        }
+    };
+
+    if(m_threaded) {
+        QtConcurrent::run(rpcHandling);
+    } else {
+        rpcHandling();
+    }
+}
+
+void cVeinModuleRpc::sendRpcResult(const QUuid &p_callId, RPCResultCodes resultCode, QString errorMsg, QVariant returnedResult)
+{
+    QHash<QUuid, QUuid>::iterator iter = m_pendingRpcHash.find(p_callId);
+    if(iter != m_pendingRpcHash.end()) {
+        QVariantMap returnVal;
+        returnVal.insert(VeinComponent::RemoteProcedureData::s_callIdString, p_callId);
+        returnVal.insert(VeinComponent::RemoteProcedureData::s_resultCodeString, resultCode);
+        if(!errorMsg.isEmpty()) {
+            returnVal.insert(VeinComponent::RemoteProcedureData::s_errorMessageString, errorMsg);
+        }
+        if(!returnedResult.isNull()) {
+            returnVal.insert("RemoteProcedureData::Return", returnedResult);
+        }
+
         VeinComponent::RemoteProcedureData *resultData = new VeinComponent::RemoteProcedureData();
         resultData->setEntityId(m_nEntityId);
         resultData->setEventOrigin(VeinEvent::EventData::EventOrigin::EO_LOCAL);
@@ -96,16 +132,10 @@ void cVeinModuleRpc::callFunctionPrivate(const QUuid p_callId, const QUuid p_pee
         resultData->setProcedureName(m_rpcName);
         resultData->setInvokationData(returnVal);
 
-
         VeinEvent::CommandEvent *rpcResultEvent = new VeinEvent::CommandEvent(VeinEvent::CommandEvent::EventSubtype::NOTIFICATION, resultData);
-        rpcResultEvent->setPeerId(p_peerId);
+        auto peerId = iter.value();
+        rpcResultEvent->setPeerId(peerId);
+        m_pendingRpcHash.erase(iter);
         emit m_pEventSystem->sigSendEvent(rpcResultEvent);
-    };
-
-    if(m_threaded){
-        QtConcurrent::run(rpcHandling);
-    }else{
-        rpcHandling();
     }
-
-};
+}
