@@ -7,9 +7,6 @@ project(vf-cpp LANGUAGES CXX)
 #Automoc and RCC ON. Needed in QT projects
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTORCC ON)
-#C++ 11 Flag# spawn out some info on configuration
-set(CMAKE_CXX_STANDARD 11)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 #Set project Version
 set(VfCpp_VERSION_MAJOR "0")
